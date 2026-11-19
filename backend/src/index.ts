@@ -13,7 +13,7 @@ app.use(express.json());
 app.use("/api", requestLogger, apiRouter);
 
 app.use((req) => {
-  throw new NotFoundError(`Route ${req.method} ${req.path} not found`);
+  throw new NotFoundError(`Route ${req.method} ${req.path} not found.`);
 });
 
 app.use(errorHandler);
@@ -27,8 +27,7 @@ consumers.vehicleTelemetryConsumer.start().catch((err) => {
   process.exit(1);
 });
 
-// Leaving the consumer group cleanly lets a restarted backend resume at once instead of waiting
-// for Kafka's session timeout. Node as PID 1 in Docker also ignores SIGTERM without a handler.
+// Leave the consumer group cleanly so a restart doesn't wait for Kafka's session timeout.
 for (const signal of ["SIGTERM", "SIGINT"]) {
   process.once(signal, async () => {
     await consumers.vehicleTelemetryConsumer.stop();

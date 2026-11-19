@@ -1,11 +1,9 @@
 import { type Consumer, Kafka } from "kafkajs";
+import { z } from "zod";
 import type { VehicleTelemetry } from "../../../shared/types/vehicle_telemetry.type.js";
 import { env } from "../config/env.js";
-import { MAX_ID } from "../utils/constants.js";
-import { VehicleTelemetryService } from "../services/vehicle_telemetry.service.js";
-
-const TOPIC = "vehicle_telemetry";
-const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+import { CONSUMER_GROUP, KAFKA_CLIENT_ID, TELEMETRY_TOPIC } from "../utils/constants.js";
+import type { VehicleTelemetryService } from "../services/vehicle_telemetry.service.js";
 
 export class VehicleTelemetryConsumer {
   private readonly kafka: Kafka;
@@ -13,21 +11,22 @@ export class VehicleTelemetryConsumer {
 
   constructor(private readonly service: VehicleTelemetryService) {
     this.kafka = new Kafka({
-      clientId: "manage_vehicle_backend",
+      clientId: KAFKA_CLIENT_ID,
       brokers: env.KAFKA_BROKERS.split(","),
     });
-    this.consumer = this.kafka.consumer({ groupId: "manage_vehicle_backend" });
+    this.consumer = this.kafka.consumer({ groupId: CONSUMER_GROUP });
   }
 
   async start(): Promise<void> {
-    // Subscribing fails if the topic is missing, and the backend can start before the generator publishes.
+    // subscribe() fails if the topic doesn't exist yet.
     const admin = this.kafka.admin();
     await admin.connect();
-    await admin.createTopics({ topics: [{ topic: TOPIC }] });
+    await admin.createTopics({ topics: [{ topic: TELEMETRY_TOPIC }] });
     await admin.disconnect();
 
     await this.consumer.connect();
-    await this.consumer.subscribe({ topic: TOPIC });
+    // A new group otherwise starts at the latest offset and loses messages sent before it joined.
+    await this.consumer.subscribe({ topic: TELEMETRY_TOPIC, fromBeginning: true });
     await this.consumer.run({
       eachMessage: async ({ message }) => {
         const telemetry = parseTelemetry(message.value);
@@ -45,29 +44,20 @@ export class VehicleTelemetryConsumer {
   }
 }
 
-// A message Postgres rejects would be retried forever and block its partition, so validate everything the DB checks.
-function parseTelemetry(value: Buffer | null): VehicleTelemetry | null {
+// A message Postgres rejects would be retried forever and block the partition, so check it here.
+const telemetrySchema = z.object({
+  vehicle_id: z.int32().positive(),
+  ts: z.iso.datetime({ offset: true }).transform((ts) => new Date(ts).toISOString()),
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+  speed: z.number().nonnegative(),
+});
+
+export function parseTelemetry(value: Buffer | null): VehicleTelemetry | null {
   try {
-    const { vehicle_id, ts, lat, lon, speed } = JSON.parse(String(value));
-    // ISO 8601 only: Date.parse also accepts loose strings like "1" (read as the year 2001).
-    const time = typeof ts === "string" && ISO_DATE_TIME.test(ts) ? Date.parse(ts) : NaN;
-    if (
-      Number.isInteger(vehicle_id) &&
-      vehicle_id >= 1 &&
-      vehicle_id <= MAX_ID &&
-      !Number.isNaN(time) &&
-      Number.isFinite(lat) &&
-      Math.abs(lat) <= 90 &&
-      Number.isFinite(lon) &&
-      Math.abs(lon) <= 180 &&
-      Number.isFinite(speed) &&
-      speed >= 0
-    ) {
-      // Normalised to UTC so Postgres and the Redis cache store the same string.
-      return { vehicle_id, ts: new Date(time).toISOString(), lat, lon, speed };
-    }
+    const result = telemetrySchema.safeParse(JSON.parse(String(value)));
+    return result.success ? result.data : null;
   } catch {
-    // not JSON; fall through
+    return null;
   }
-  return null;
 }

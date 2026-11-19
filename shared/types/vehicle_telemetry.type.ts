@@ -5,3 +5,10 @@ export interface VehicleTelemetry {
   lon: number;
   speed: number;
 }
+
+export interface VehicleTelemetryPage {
+  items: VehicleTelemetry[];
+  total: number;
+  limit: number;
+  offset: number;
+}

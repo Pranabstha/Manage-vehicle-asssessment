@@ -1,12 +1,9 @@
 import type { Request, Response } from "express";
-import {
-  BadRequestError,
-  type ExtractedErrorsType,
-  ValidationFailedError,
-} from "../utils/errors.js";
+import { z } from "zod";
+import { BadRequestError, ValidationFailedError } from "../utils/errors.js";
 import type { VehicleInput } from "../../../shared/types/vehicle.type.js";
-import { MAX_ID } from "../utils/constants.js";
-import { VehicleService } from "../services/vehicle.service.js";
+import { MAX_NAME_LENGTH, MAX_REGISTRATION_LENGTH } from "../../../shared/limits.js";
+import type { VehicleService } from "../services/vehicle.service.js";
 
 export class VehicleController {
   constructor(private readonly service: VehicleService) {}
@@ -38,39 +35,34 @@ export class VehicleController {
   };
 }
 
-const MAX_REGISTRATION_LENGTH = 20;
-const MAX_NAME_LENGTH = 100;
+const idSchema = z.string().regex(/^\d+$/).transform(Number).pipe(z.int32().positive());
 
-function parseId(value: string): number {
-  const id = Number(value);
-  if (!/^\d+$/.test(value) || id < 1 || id > MAX_ID) {
+const vehicleInputSchema = z.object({
+  registration: z
+    .string({ error: "registration is required" })
+    .trim()
+    .min(1, "registration is required")
+    .max(MAX_REGISTRATION_LENGTH, `registration must be at most ${MAX_REGISTRATION_LENGTH} characters`)
+    .toUpperCase(),
+  name: z
+    .string({ error: "name is required" })
+    .trim()
+    .min(1, "name is required")
+    .max(MAX_NAME_LENGTH, `name must be at most ${MAX_NAME_LENGTH} characters`),
+});
+
+export function parseId(value: string): number {
+  const result = idSchema.safeParse(value);
+  if (!result.success) {
     throw new BadRequestError("Vehicle id must be a positive integer.");
   }
-  return id;
+  return result.data;
 }
 
-function parseVehicleInput(body: unknown): VehicleInput {
-  const { registration, name } = (body ?? {}) as Record<string, unknown>;
-  const errors: ExtractedErrorsType = {};
-
-  if (typeof registration !== "string" || registration.trim() === "") {
-    errors.registration = ["registration is required"];
-  } else if (registration.trim().length > MAX_REGISTRATION_LENGTH) {
-    errors.registration = [
-      `registration must be at most ${MAX_REGISTRATION_LENGTH} characters`,
-    ];
+export function parseVehicleInput(body: unknown): VehicleInput {
+  const result = vehicleInputSchema.safeParse(body ?? {});
+  if (!result.success) {
+    throw new ValidationFailedError(z.flattenError(result.error).fieldErrors);
   }
-  if (typeof name !== "string" || name.trim() === "") {
-    errors.name = ["name is required"];
-  } else if (name.trim().length > MAX_NAME_LENGTH) {
-    errors.name = [`name must be at most ${MAX_NAME_LENGTH} characters`];
-  }
-  if (Object.keys(errors).length > 0) {
-    throw new ValidationFailedError(errors);
-  }
-
-  return {
-    registration: (registration as string).trim().toUpperCase(),
-    name: (name as string).trim(),
-  };
+  return result.data;
 }

@@ -5,13 +5,15 @@
     "dev": "tsx watch --env-file-if-exists=../.env src/index.ts",
     "build": "tsc",
     "start": "node dist/backend/src/index.js",
+    "test": "tsx --env-file-if-exists=../.env --test test/*.test.ts",
     "knex": "tsx --env-file-if-exists=../.env node_modules/knex/bin/cli.js --knexfile src/config/knex.ts",
     "migrate:make": "npm run knex -- migrate:make",
     "migrate:latest": "npm run knex -- migrate:latest",
     "migrate:rollback": "npm run knex -- migrate:rollback",
     "migrate:status": "npm run knex -- migrate:list",
     "seed:make": "npm run knex -- seed:make",
-    "seed:run": "npm run knex -- seed:run"
+    "seed:run": "npm run knex -- seed:run",
+    "migrate:docker": "knex --knexfile dist/backend/src/config/knex.js migrate:latest && knex --knexfile dist/backend/src/config/knex.js seed:run"
   },
   "type": "module",
   "dependencies": {
@@ -19,12 +21,12 @@
     "kafkajs": "^2.2.4",
     "knex": "^3.3.0",
     "pg": "^8.23.1",
-    "redis": "^6.3.1"
+    "redis": "^6.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
-    "@types/pg": "^8.23.1",
     "tsx": "^4.23.15",
     "typescript": "~7.0.2"
   },

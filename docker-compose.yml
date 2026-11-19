@@ -46,6 +46,7 @@ services:
       dockerfile: backend/Dockerfile
     image: manage_vehicle_backend
     container_name: manage_vehicle_backend
+    restart: unless-stopped
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -77,3 +78,18 @@ services:
       - "${FRONTEND_PORT:-5132}:80"
     depends_on:
       - backend
+
+  generator:
+    build: ./generator
+    image: manage_vehicle_generator
+    container_name: manage_vehicle_generator
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      BACKEND_URL: http://backend:${BACKEND_PORT:-8000}
+      INTERVAL_MS: ${INTERVAL_MS:-5000}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      backend:
+        condition: service_started

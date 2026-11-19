@@ -11,8 +11,7 @@ const development: Knex.Config = {
     password: env.DB_PASSWORD,
     database: env.DB_NAME,
   },
-  // Directories are relative to this file, because the knex CLI changes into this folder.
-  // From src/config/ (tsx) and dist/backend/src/config/ (build) both land on sibling folders.
+  // The knex CLI changes into this folder, so resolve paths from this file.
   migrations: {
     directory: fileURLToPath(new URL("../../migrations", import.meta.url)),
     extension: "ts",
@@ -25,7 +24,6 @@ const development: Knex.Config = {
   },
 };
 
-// Picked by NODE_ENV. Production (the Docker image) differs only in env var values.
 const config: { [key: string]: Knex.Config } = {
   development,
   production: development,

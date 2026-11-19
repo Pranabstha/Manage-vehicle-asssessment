@@ -1,11 +1,9 @@
 import { Flex, Typography } from "antd";
-
-const GREEN = "#0d3b2c";
-const ORANGE = "#ff5a1f";
+import { DARK_GREEN, GREEN, ORANGE } from "./colors";
 
 export default function Navbar() {
   return (
-    <div style={{ background: "#06140f", padding: "20px 24px" }}>
+    <div style={{ background: DARK_GREEN, padding: "20px 24px" }}>
       <Flex
         align="center"
         justify="space-between"

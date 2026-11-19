@@ -1,0 +1,17 @@
+{
+  "name": "generator",
+  "description": "Publishes sample vehicle telemetry to Kafka",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=../.env index.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "~7.0.2"
+  },
+  "private": true
+}

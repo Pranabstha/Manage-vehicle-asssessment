@@ -3,13 +3,12 @@ import type {
   VehicleInput,
 } from "../../../shared/types/vehicle.type.js";
 import db from "../config/db.js";
+import { UNIQUE_VIOLATION } from "../utils/constants.js";
 
-// pg returns TIMESTAMPTZ as Date; res.json() turns it into the ISO string the shared Vehicle type describes.
+// return type of pg TIMESTAMPTZ is Date, res.json() turns it into the ISO string
 export interface VehicleRow extends Omit<Vehicle, "created_at"> {
   created_at: Date;
 }
-
-const UNIQUE_VIOLATION = "23505";
 
 export function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string } | null)?.code === UNIQUE_VIOLATION;

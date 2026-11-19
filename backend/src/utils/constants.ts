@@ -1,13 +1,11 @@
-export const HTTP_STATUS_CODES = {
-  BAD_REQUEST: 400,
-  NOT_FOUND: 404,
-  UNPROCESSABLE_ENTITY: 422,
-  INTERNAL_SERVER_ERROR: 500,
-} as const;
+export const TELEMETRY_TOPIC = "vehicle_telemetry";
+export const KAFKA_CLIENT_ID = "manage_vehicle_backend";
+export const CONSUMER_GROUP = "manage_vehicle_backend";
+export const LATEST_TELEMETRY_KEY = "vehicle_latest_telemetry";
 
-export const HTTP_RESPONSE_MESSAGES = {
-  VALIDATION_ERROR: "Validation failed.",
-};
+// Postgres error codes.
+export const UNIQUE_VIOLATION = "23505";
+export const FOREIGN_KEY_VIOLATION = "23503";
 
-// Largest Postgres integer, the type of every id column.
-export const MAX_ID = 2_147_483_647;
+export const DEFAULT_HISTORY_RANGE_MS = 60 * 60 * 1000;
+export const DEFAULT_HISTORY_LIMIT = 100;

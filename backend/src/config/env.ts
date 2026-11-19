@@ -6,7 +6,7 @@ function required(name: string): string {
   return value;
 }
 
-// Defaults point at the docker-compose ports exposed on the host, for running the backend outside Docker.
+// defaults are the host ports docker-compose exposes
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   BACKEND_PORT: Number(process.env.BACKEND_PORT ?? 8000),

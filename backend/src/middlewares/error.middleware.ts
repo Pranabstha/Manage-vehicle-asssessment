@@ -2,7 +2,8 @@ import type { ErrorRequestHandler } from "express";
 import {
   BadRequestError,
   CustomError,
-  type ExtractedErrorsType,
+  type FieldErrors,
+  PayloadTooLargeError,
   UnexpectedError,
   ValidationFailedError,
 } from "../utils/errors.js";
@@ -10,12 +11,14 @@ import {
 interface JsonResponse {
   failed: boolean;
   message: string;
-  errors?: ExtractedErrorsType;
+  errors?: FieldErrors;
 }
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof SyntaxError && "body" in err) {
     err = new BadRequestError("Request body is not valid JSON.");
+  } else if (err.type === "entity.too.large") {
+    err = new PayloadTooLargeError("Request body is too large.");
   }
 
   if (!(err instanceof CustomError)) {
