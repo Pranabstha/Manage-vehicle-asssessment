@@ -1,0 +1,54 @@
+import { NotFoundError, ValidationFailedError } from "../utils/errors.js";
+import type { VehicleInput } from "../../../shared/types/vehicle.type.js";
+import {
+  isUniqueViolation,
+  type VehicleRow,
+  VehicleRepository,
+} from "../repositories/vehicle.repository.js";
+
+export class VehicleService {
+  constructor(private readonly repository: VehicleRepository) {}
+
+  list(): Promise<VehicleRow[]> {
+    return this.repository.findAll();
+  }
+
+  async get(id: number): Promise<VehicleRow> {
+    const vehicle = await this.repository.findById(id);
+    if (!vehicle) throw new NotFoundError("Vehicle not found");
+    return vehicle;
+  }
+
+  async create(input: VehicleInput): Promise<VehicleRow> {
+    try {
+      return await this.repository.create(input);
+    } catch (err) {
+      throw toDuplicateError(err);
+    }
+  }
+
+  async update(id: number, input: VehicleInput): Promise<VehicleRow> {
+    let vehicle: VehicleRow | undefined;
+    try {
+      vehicle = await this.repository.update(id, input);
+    } catch (err) {
+      throw toDuplicateError(err);
+    }
+    if (!vehicle) throw new NotFoundError("Vehicle not found");
+    return vehicle;
+  }
+
+  async delete(id: number): Promise<void> {
+    const deleted = await this.repository.delete(id);
+    if (!deleted) throw new NotFoundError("Vehicle not found");
+  }
+}
+
+function toDuplicateError(err: unknown): unknown {
+  if (isUniqueViolation(err)) {
+    return new ValidationFailedError({
+      registration: ["registration already used"],
+    });
+  }
+  return err;
+}
